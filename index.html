@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+ 
+ <h1>CRUD Club Members</h1>
+ <form id='memberForm' >
+    
+    <label>Name <input type='text' id='name' name='name' tabindex=1><label><br/>
+    <label>Email <input type='text' id='email' name='email' tabindex=2></label><br/>
+    <label>Telephone <input type='text' id='telephone' name='telephone' tabindex=2></label><br/>
+    <br/>
+    <label>ID<input type='text' id='_id' name='id' disabled > </label>
+  </form>      
+
+  <div style='display:flex'>
+    <button type='button' id="createButton" tabindex=3>Create</button>   <!-- NOTE the 'type-button' is IMPORTANT as the default type is 'Sumbit' which will submit the form *which we DONT want* -->
+    <button type='button' id="readButton" tabindex=4>Read (find) </button>  
+    <button type='button' id="updateButton" tabindex=5>Update</button>  
+    <button type='button' id="deleteButton" tabindex=6>Delete</button>  
+  </div>
+    
+</div>
+    
+</body>
+
+<script>
+
+//const showId = (o) =>{document.getElementById("idLabel").innerHTML=o._id;document.getElementById('memberForm').reset()} //On the 'back end' Mongoose/Mongo will give every inserted document an _id
+
+const create = () => {    
+    let formData = new FormData(document.getElementById('memberForm'))
+    submit('POST','/',formData, showMember) //we pass showMember as the function to 'call back' *with* the repsonse object - which includes the ID (for display)
+    setTimeout(()=>{document.getElementById('memberForm').reset()},500) //reset/clear the form after 0.5 seconds
+}
+
+const showMember = (o) => {
+    
+    let first=o[0]
+    document.getElementById("name").value = first.name
+    document.getElementById("email").value = first.email    
+    document.getElementById("telephone").value = first.telephone
+    document.getElementById("_id").value = first._id
+    
+    /* Or .... (to never have to extend the above ..)
+    for (let k in o[0]){  //Iterate over the keys in the object
+        let el = document.getElementById(k) //find the cooresponding element by id
+        if (el) el.value = first[k]  //if there is one present - set the elements value to the object.value i.e. set nameElement.value = o.name
+    }
+    */
+}
+
+const read = ()=>{
+    let formData = new FormData(document.getElementById('memberForm'))
+    submit('GET','/' + document.getElementById("name").value,formData, showMember) //we will get back an ARRAY of matches (often only, but not necssarily length 1
+}
+
+document.getElementById("createButton").addEventListener("click", create)
+document.getElementById("readButton").addEventListener("click", read)
+
+async function submit(method, url, formData,responseProcessor){
+    
+    let payload=null
+    if (method==='POST'){
+        if(formData instanceof FormData){
+            payload = JSON.stringify(Object.fromEntries(formData)) // the trick here is to make an object from the formdata
+        }
+    } 
+    
+    const response = await fetch(url, {method:method,body:payload,headers:{'Accept':'application/json','Content-Type':'application/json'}})
+    if (response.ok){     
+        const obj = await response.json()        
+        if (responseProcessor) {responseProcessor(obj)}  //IF we have been passed a 'responseProcessor' function, invoke it - and pass the parsed object
+    }
+    else{
+        alert("HTTP ERROR:" + response.status)    
+    }    
+}
+
+</script>
+</html>
