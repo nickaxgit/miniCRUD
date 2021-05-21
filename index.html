@@ -23,7 +23,9 @@
     <button type='button' id="readButton" tabindex=4>Read (find) </button>  
     <button type='button' id="updateButton" tabindex=5>Update</button>  
     <button type='button' id="deleteButton" tabindex=6>Delete</button>  
+    
   </div>
+  <label id='message' style="background-color:blue;color:white"></label>
     
 </div>
     
@@ -33,40 +35,54 @@
 
 //const showId = (o) =>{document.getElementById("idLabel").innerHTML=o._id;document.getElementById('memberForm').reset()} //On the 'back end' Mongoose/Mongo will give every inserted document an _id
 
-const create = () => {    
-    let formData = new FormData(document.getElementById('memberForm'))
-    submit('POST','/',formData, showMember) //we pass showMember as the function to 'call back' *with* the repsonse object - which includes the ID (for display)
-    setTimeout(()=>{document.getElementById('memberForm').reset()},500) //reset/clear the form after 0.5 seconds
-}
-
 const showMember = (o) => {
     
-    let first=o[0]
-    document.getElementById("name").value = first.name
-    document.getElementById("email").value = first.email    
-    document.getElementById("telephone").value = first.telephone
-    document.getElementById("_id").value = first._id
+    document.getElementById("name").value = o.name
+    document.getElementById("email").value = o.email    
+    document.getElementById("telephone").value = o.telephone
+    document.getElementById("_id").value = o._id
     
     /* Or .... (to never have to extend the above ..)
-    for (let k in o[0]){  //Iterate over the keys in the object
+    for (let k in o){  //Iterate over the keys in the object
         let el = document.getElementById(k) //find the cooresponding element by id
         if (el) el.value = first[k]  //if there is one present - set the elements value to the object.value i.e. set nameElement.value = o.name
     }
     */
 }
 
+
+const create = () => {    
+    let formData = new FormData(document.getElementById('memberForm'))
+    submit('POST','/api/',formData, showMember) //we pass showMember as the function to 'call back' *with* the repsonse object - which includes the ID (for display)
+    setTimeout(()=>{document.getElementById('memberForm').reset()},500) //reset/clear the form after 0.5 seconds
+}
+
+
 const read = ()=>{
     let formData = new FormData(document.getElementById('memberForm'))
-    submit('GET','/' + document.getElementById("name").value,formData, showMember) //we will get back an ARRAY of matches (often only, but not necssarily length 1
+    submit('GET','/api/' + document.getElementById("name").value,formData, showMember) 
+}
+
+const deleteReq = () => {
+        submit('DELETE', '/api/' + document.getElementById("_id").value, showMember) //we pass showMember as the function to 'call back' *with* the repsonse object - which includes the ID (for display)
+        setTimeout(() => { document.getElementById('memberForm').reset() }, 500) //reset/clear the form after 0.5 seconds
+    }
+
+const update = () => {
+    let formData = new FormData(document.getElementById('memberForm'))
+    console.log(formData)
+    submit('PATCH', '/api/' + document.getElementById("_id").value, formData, showMember) //we pass showMember as the function to 'call back' *with* the repsonse object - which includes the ID (for display)    
 }
 
 document.getElementById("createButton").addEventListener("click", create)
 document.getElementById("readButton").addEventListener("click", read)
+document.getElementById("deleteButton").addEventListener("click", deleteReq)
+document.getElementById("updateButton").addEventListener("click", update)
 
 async function submit(method, url, formData,responseProcessor){
     
     let payload=null
-    if (method==='POST'){
+    if (method==='POST' || method === 'PATCH'){
         if(formData instanceof FormData){
             payload = JSON.stringify(Object.fromEntries(formData)) // the trick here is to make an object from the formdata
         }
@@ -78,7 +94,10 @@ async function submit(method, url, formData,responseProcessor){
         if (responseProcessor) {responseProcessor(obj)}  //IF we have been passed a 'responseProcessor' function, invoke it - and pass the parsed object
     }
     else{
-        alert("HTTP ERROR:" + response.status)    
+
+        document.getElementById("message").innerHTML= + response.status
+        setTimeout(()=>{document.getElementById("message").innerHTML= ""},1000)
+
     }    
 }
 
