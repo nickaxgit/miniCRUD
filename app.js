@@ -1,40 +1,35 @@
 "use strict";
-//Courtesy of Adam R - this is a stripped down and commented version of his code
+//Courtesy of Adam R - this is a stripped down, slightly refactored and commented version of his code
 
 //It has been refactored into an 'MVP' 'CRUD' membership database
 
-const express = require("express");
-const path=require("path")
-
+const express = require("express");   //Express is the server side framework - A webserver, 'Router' and HTTP 'handlers' invoke funtions that have assess to the Request and Response objects
 const Member = require("./models/members");  //this module *is* our "Model" - it provides access to the data data, and exposes a number of methods for handling the collection (such as '.find()  , .save() and .remove()) 
-const cors = require("cors"); //Cors is needed if we want to host on a different domain than the requests are coming from - it's not needed *yet* but you will run into it in production
-const mongoose = require("mongoose");  //Mongoose provides an extra 'layer' on top of MongoDB  it helps to enforce *some* structure 
+const cors = require("cors");   //Cors is needed if we want allow access to requests from a different domain - it's not needed *yet* but you might run into it in production
+const mongoose = require("mongoose");  //Mongoose provides an extra 'layer' on top of MongoDB  it helps to enforce *some* structure with class-like access to documents - https://mongoosejs.com/docs/index.html
 
-const app=express()  
+const app=express()  //create the app object .. this the 'Engine' (webserver/request pipeline)
 
-const PORT = process.env.PORT || 3000; 
+const PORT = process.env.PORT || 3000;  //We will listen on port 3000  - OR another port specified in the Environement variable on the server
 
-let db  // a reference to the database
-
-app.use(express.json())  // if you leave the () off here - you get a horrendous series of silent errors that takes you 2 hours to debug (ask me how I know)
-app.use(cors())
+app.use(express.json())  //add 'express.json' parser to the request pipeline - this will popolate request.body variables from the JSON in the request body
+app.use(cors())          //This is the simplest (and most dangerous) use of CORS and will allow requests for anything from anywhere -  google use(cors()) - for more restrictive usage
 app.use(express.static(__dirname));  //the static handler will serve our HTML and Image files
 
+//We need to declare all of our function expressions before we use them - they don't execute until they are called by the code further down
 
 const connect = async () => {
   const URL =
     process.env.DATABASE_URL ||
     "mongodb://localhost";
   mongoose.connect(URL, { useNewUrlParser: true, useUnifiedTopology: true });
-  db = mongoose.connection;
+  const db = mongoose.connection;
   db.on("error", (err) => error("Connection error: " + err));
   db.once("open", () => app.listen(PORT, () => console.log(`Server is running on ${PORT}`)));  //we defer the normal "app.listen() - until the database has started up (bad things would happen if we started accepting requests before the database was running)"
 };
 
-connect(); //conect to the database and start the application listening for HTTP requests
 
 
-//We need to declare all out function expressions before we used them - the don't execute until they are called by the handlers at the bottom
 const createMember = async (req, res) => {
 
   const member = new Member({
@@ -97,10 +92,12 @@ const getMemberByName = async (req, res, next) => {
 };
 
 const updateMember = async (req, res) => {
-
+  
   if (req.body.name) res.member.name = req.body.name;
   if (req.body.email) res.member.email = req.body.email;
   if (req.body.telephone) res.member.telephone = req.body.telephone;
+
+  /* res.member = {...req.body} */
     
   try {
     const updatedMember = await res.member.save();
@@ -125,8 +122,6 @@ const outputMember = (req,res)=> {
 }
 
 
-
-
 //Now we Create/register the HTTP Handlers - functions that will get called for requests matching the 'routes' specified ...
 
 //Creating a Member (*any* POST will call this)
@@ -141,4 +136,6 @@ app.patch("/api/:id", getMemberById, updateMember)  //again two HTTP handlers - 
 //Deleting a Member
 app.delete("/api/:id", getMemberById, deleteMember)
 
+
+connect(); //Conect to the database and start the application listening for HTTP requests
 
